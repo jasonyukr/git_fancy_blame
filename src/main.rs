@@ -63,7 +63,7 @@ fn generate_gradation(start: &RGB, end: &RGB, steps: u32) -> Vec<RGB> {
 
 fn main() {
     // Table for true-color gradation
-    // (b-start.r, b-start.g, b-start.b, b-end.r, b-end.g, b-end.b, fore.r, fore.g, fore.b)
+    // (back_start.r, back_start.g, back_start.b, back_end.r, back_end.g, back_end.b, fore.r, fore.g, fore.b)
     let gradation_table =
         [(0x70, 0xc0, 0xb1, 0xc5, 0xc8, 0xc6, 0x3c, 0x3e, 0x3f),
          (0xc3, 0x97, 0xd8, 0xc5, 0xc8, 0xc6 ,0x3c, 0x3e, 0x3f),
@@ -129,22 +129,22 @@ fn main() {
         g: gradation_table[gradation_idx].7,
         b: gradation_table[gradation_idx].8
     };
-    let start = RGB {
+    let back_start = RGB {
         r: gradation_table[gradation_idx].0,
         g: gradation_table[gradation_idx].1,
         b: gradation_table[gradation_idx].2
     };
-    let end = RGB {
+    let back_end = RGB {
         r: gradation_table[gradation_idx].3,
         g: gradation_table[gradation_idx].4,
         b: gradation_table[gradation_idx].5
     };
-    let gradation = generate_gradation(&start, &end, revlist_map.len() as u32);
+    let gradation = generate_gradation(&back_start, &back_end, revlist_map.len() as u32);
 
     let mut bat_lines = vec![];
     if bat_file.is_ok() {
         let reader = BufReader::new(bat_file.unwrap());
-        for (_index, line) in reader.lines().enumerate() {
+        for (_, line) in reader.lines().enumerate() {
             let line = line.unwrap();
             bat_lines.push(line);
         }
@@ -157,44 +157,39 @@ fn main() {
         for (index, line) in reader.lines().enumerate() {
             let line = line.unwrap();
 
-            let mut found_idx;
-            let mut entry: [&str; 2] = ["", ""];
+            // get hash-value
+            let hash;
             match line.find(' ') {
-                Some(found) => found_idx = found,
-                None => found_idx = 0
-            }
-            if found_idx != 0 {
-                entry[0] = &line[..found_idx];
-                entry[1] = &line[found_idx+1..];
-            } else {
-                entry[1] = &line;
-            }
-            match revlist_map.get(entry[0]) {
-                Some(found) => found_idx = *found,
-                None => found_idx = revlist_map.len() - 1
-            }
-            if entry[0] == "0000000" { // special case: local change
-                found_idx = 0;
+                Some(found) => hash = &line[..found],
+                None => hash = &line
             }
 
-            let rgb = gradation.get(found_idx);
-            let red: u32;
-            let green: u32;
-            let blue: u32;
-            if rgb.is_none() {
-                red = end.r;
-                green = end.g;
-                blue = end.b;
+            // get matching index from hash-value
+            let matching_idx;
+            if hash == "0000000" {
+                // special case: local change
+                matching_idx = 0;
             } else {
-                red = rgb.unwrap().r;
-                green = rgb.unwrap().g;
-                blue = rgb.unwrap().b;
+                match revlist_map.get(hash) {
+                    Some(found) => matching_idx = *found,
+                    None => matching_idx = revlist_map.len() - 1
+                }
             }
-            if entry[0] != "" {
-                println!("│\x1b[38;2;{};{};{}m\x1b[48;2;{};{};{}m{} {}\x1b[0m│{}", fore.r, fore.g, fore.b, red, green, blue, entry[0], entry[1], bat_lines[index]);
-            } else {
-                println!("│\x1b[38;2;{};{};{}m\x1b[48;2;{};{};{}m{}\x1b[0m│{}", fore.r, fore.g, fore.b, red, green, blue, entry[1], bat_lines[index]);
+
+            // get current gradation color. default is back_end
+            let mut back = RGB {
+                r: back_end.r,
+                g: back_end.g,
+                b: back_end.b
+            };
+            let rgb = gradation.get(matching_idx);
+            if !rgb.is_none() {
+                back.r = rgb.unwrap().r;
+                back.g = rgb.unwrap().g;
+                back.b = rgb.unwrap().b;
             }
+
+            println!("│\x1b[38;2;{};{};{}m\x1b[48;2;{};{};{}m{}\x1b[0m│{}", fore.r, fore.g, fore.b, back.r, back.g, back.b, line, bat_lines[index]);
         }
     } else {
         return;
