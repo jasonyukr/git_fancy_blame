@@ -176,7 +176,7 @@ fn main() {
                 }
             }
 
-            // get current gradation color. default is back_end
+            // get current gradation color from matching index. default is back_end
             let mut back = RGB {
                 r: back_end.r,
                 g: back_end.g,
