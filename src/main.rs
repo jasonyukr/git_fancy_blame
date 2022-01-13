@@ -159,7 +159,7 @@ fn main() {
 
             let mut found_idx;
             let mut entry: [&str; 2] = ["", ""];
-            match line.rfind(' ') {
+            match line.find(' ') {
                 Some(found) => found_idx = found,
                 None => found_idx = 0
             }
@@ -172,6 +172,9 @@ fn main() {
             match revlist_map.get(entry[0]) {
                 Some(found) => found_idx = *found,
                 None => found_idx = revlist_map.len() - 1
+            }
+            if entry[0] == "0000000" { // special case: local change
+                found_idx = 0;
             }
 
             let rgb = gradation.get(found_idx);
@@ -188,9 +191,9 @@ fn main() {
                 blue = rgb.unwrap().b;
             }
             if entry[0] != "" {
-                println!("│\x1b[38;2;{};{};{}m\x1b[48;2;{};{};{}m{}:{}\x1b[0m│ {}", fore.r, fore.g, fore.b, red, green, blue, entry[0], entry[1], bat_lines[index]);
+                println!("│\x1b[38;2;{};{};{}m\x1b[48;2;{};{};{}m{} {}\x1b[0m│{}", fore.r, fore.g, fore.b, red, green, blue, entry[0], entry[1], bat_lines[index]);
             } else {
-                println!("│\x1b[38;2;{};{};{}m\x1b[48;2;{};{};{}m{}\x1b[0m│ {}", fore.r, fore.g, fore.b, red, green, blue, entry[1], bat_lines[index]);
+                println!("│\x1b[38;2;{};{};{}m\x1b[48;2;{};{};{}m{}\x1b[0m│{}", fore.r, fore.g, fore.b, red, green, blue, entry[1], bat_lines[index]);
             }
         }
     } else {
