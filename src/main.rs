@@ -160,20 +160,43 @@ fn main() {
         for (index, line) in reader.lines().enumerate() {
             let line = line.unwrap();
 
-            // get hash-value
-            let hash;
+            /*
+             * According to git blame --help
+             *
+             * --abbrev=<n>
+             *      Instead of using the default 7+1 hexadecimal digits as the abbreviated object name, use <n>+1 digits.
+             *      Note that 1 column is used for a caret to mark the boundary commit.
+             *
+             *  We get the <n>+1 length hash-raw value and then make <n> length hash value.
+             */
+
+            // split hash-raw (<n>+1 length) and remaining
+            let hash_raw;
+            let remaining;
             match line.find(' ') {
-                Some(found) => hash = &line[..found],
-                None => hash = &line
+                Some(found) => {hash_raw = &line[..found]; remaining = &line[found..]},
+                None => {hash_raw = &line; remaining = ""}
+            }
+
+            // make hash (<n> length) value
+            let mut hash: String = hash_raw.to_string();
+            let hash_len = hash.chars().count();
+            if hash_len > 1 {
+                if hash.chars().nth(0) == Some('^') {
+                    hash = (&hash[1..]).to_string();
+                } else {
+                    hash = (&hash[..hash_len-1]).to_string();
+                }
             }
 
             // get matching index from hash-value
             let matching_idx;
-            if hash == "0000000" {
-                // special case: local change
+            if hash == "000000000000" {
+                // special case for local change
+                // we assume "--abbrev=12"
                 matching_idx = 0;
             } else {
-                match revlist_map.get(hash) {
+                match revlist_map.get(&hash) {
                     Some(found) => matching_idx = *found,
                     None => matching_idx = revlist_map.len() - 1
                 }
@@ -192,7 +215,7 @@ fn main() {
                 back.b = rgb.unwrap().b;
             }
 
-            println!("│\x1b[38;2;{};{};{}m\x1b[48;2;{};{};{}m{}\x1b[0m│{}", fore.r, fore.g, fore.b, back.r, back.g, back.b, line, bat_lines[index]);
+            println!("│\x1b[38;2;{};{};{}m\x1b[48;2;{};{};{}m{}{}\x1b[0m│{}", fore.r, fore.g, fore.b, back.r, back.g, back.b, hash, remaining, bat_lines[index]);
         }
     } else {
         return;
