@@ -113,6 +113,7 @@ fn main() {
     let blame_file = File::open(blame_filename);
     let bat_file = File::open(bat_filename);
 
+    // load revlist file
     let mut revlist_map = HashMap::new();
     if revlist_file.is_ok() {
         let reader = BufReader::new(revlist_file.unwrap());
@@ -141,6 +142,7 @@ fn main() {
     };
     let gradation = generate_gradation(&back_start, &back_end, revlist_map.len() as u32);
 
+    // load bat file
     let mut bat_lines = vec![];
     if bat_file.is_ok() {
         let reader = BufReader::new(bat_file.unwrap());
@@ -152,6 +154,7 @@ fn main() {
         return;
     }
 
+    // load blame file and process each line
     if blame_file.is_ok() {
         let reader = BufReader::new(blame_file.unwrap());
         for (index, line) in reader.lines().enumerate() {
