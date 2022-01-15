@@ -32,14 +32,14 @@ struct Rgb {
     b: u32
 }
 
-fn get_gradation(start: &Rgb, end: &Rgb, steps: u32) -> Vec<Rgb> {
+fn get_grad(start: &Rgb, end: &Rgb, steps: u32) -> Vec<Rgb> {
     // The number of colors to compute
     let len = steps;
 
     // Alpha blending amount
     let mut alpha = 0.0;
 
-    let mut gradation: Vec<Rgb> = Vec::new();
+    let mut grad: Vec<Rgb> = Vec::new();
 
     for _i in 0..len {
         let red: f32;
@@ -56,15 +56,15 @@ fn get_gradation(start: &Rgb, end: &Rgb, steps: u32) -> Vec<Rgb> {
             g: green as u32,
             b: blue as u32
         };
-        gradation.push(rgb)
+        grad.push(rgb)
     }
-    return gradation;
+    return grad;
 }
 
 fn main() {
     // Table for true-color gradation
-    // (back_start.r, back_start.g, back_start.b, back_end.r, back_end.g, back_end.b, fore.r, fore.g, fore.b)
-    let gradation_table =
+    // (back_start_color.r, back_start_color.g, back_start_color.b, back_end_color.r, back_end_color.g, back_end_color.b, fore_color.r, fore_color.g, fore_color.b)
+    let grad_table =
         [(0x70, 0xc0, 0xb1, 0xc5, 0xc8, 0xc6, 0x3c, 0x3e, 0x3f),
          (0xc3, 0x97, 0xd8, 0xc5, 0xc8, 0xc6 ,0x3c, 0x3e, 0x3f),
          (0x7a, 0xa6, 0xda, 0xc5, 0xc8, 0xc6, 0x3c, 0x3e, 0x3f),
@@ -73,7 +73,7 @@ fn main() {
          (0xd5, 0x4e, 0x53, 0xc5, 0xc8, 0xc6, 0x3c, 0x3e, 0x3f),
          (0x8a, 0xbe, 0x87, 0xc5, 0xc8, 0xc6, 0x3c, 0x3e, 0x3f)];
 
-    let mut gradation_idx = 0;
+    let mut grad_idx = 0;
 
     let mut exec_name: String = String::from("");
     let mut revlist_filename: String = String::from("");
@@ -85,11 +85,11 @@ fn main() {
     for arg in env::args() {
         if idx_mode {
             match arg.parse::<usize>() {
-                Ok(i) => gradation_idx = i,
-                Err(_) => gradation_idx = 0
+                Ok(i) => grad_idx = i,
+                Err(_) => grad_idx = 0
             }
-            if gradation_idx >= gradation_table.len() {
-                gradation_idx = 0;
+            if grad_idx >= grad_table.len() {
+                grad_idx = 0;
             }
             idx_mode = false;
             continue;
@@ -133,22 +133,22 @@ fn main() {
         }
     }
 
-    let fore = Rgb {
-        r: gradation_table[gradation_idx].6,
-        g: gradation_table[gradation_idx].7,
-        b: gradation_table[gradation_idx].8
+    let fore_color = Rgb {
+        r: grad_table[grad_idx].6,
+        g: grad_table[grad_idx].7,
+        b: grad_table[grad_idx].8
     };
-    let back_start = Rgb {
-        r: gradation_table[gradation_idx].0,
-        g: gradation_table[gradation_idx].1,
-        b: gradation_table[gradation_idx].2
+    let back_start_color = Rgb {
+        r: grad_table[grad_idx].0,
+        g: grad_table[grad_idx].1,
+        b: grad_table[grad_idx].2
     };
-    let back_end = Rgb {
-        r: gradation_table[gradation_idx].3,
-        g: gradation_table[gradation_idx].4,
-        b: gradation_table[gradation_idx].5
+    let back_end_color = Rgb {
+        r: grad_table[grad_idx].3,
+        g: grad_table[grad_idx].4,
+        b: grad_table[grad_idx].5
     };
-    let gradation = get_gradation(&back_start, &back_end, revlist_map.len() as u32);
+    let grad = get_grad(&back_start_color, &back_end_color, revlist_map.len() as u32);
 
     // load bat file
     let mut bat_lines = vec![];
@@ -221,20 +221,15 @@ fn main() {
                     }
                 }
 
-                // get current gradation color from matching index. default is back_end
-                let mut back = Rgb {
-                    r: back_end.r,
-                    g: back_end.g,
-                    b: back_end.b
-                };
-                let rgb = gradation.get(matching_idx);
-                if !rgb.is_none() {
-                    back.r = rgb.unwrap().r;
-                    back.g = rgb.unwrap().g;
-                    back.b = rgb.unwrap().b;
+                // get current gradation color from matching index. default is back_end_color
+                let back_color;
+                let grad_color = grad.get(matching_idx);
+                match grad_color {
+                    Some(color) => back_color = color,
+                    None => back_color = &back_end_color
                 }
 
-                println!("│\x1b[38;2;{};{};{}m\x1b[48;2;{};{};{}m{}{}\x1b[0m│{}", fore.r, fore.g, fore.b, back.r, back.g, back.b, hash, remaining, bat_lines[index]);
+                println!("│\x1b[38;2;{};{};{}m\x1b[48;2;{};{};{}m{}{}\x1b[0m│{}", fore_color.r, fore_color.g, fore_color.b, back_color.r, back_color.g, back_color.b, hash, remaining, bat_lines[index]);
             }
         }
     }
