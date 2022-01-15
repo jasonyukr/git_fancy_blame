@@ -223,8 +223,7 @@ fn main() {
 
                 // get current gradation color from matching index. default is back_end_color
                 let back_color;
-                let grad_color = grad.get(matching_idx);
-                match grad_color {
+                match grad.get(matching_idx) {
                     Some(color) => back_color = color,
                     None => back_color = &back_end_color
                 }
