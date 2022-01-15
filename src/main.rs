@@ -34,19 +34,14 @@ struct Rgb {
 }
 
 fn get_grad(start: &Rgb, end: &Rgb, steps: u32) -> Vec<Rgb> {
-    // The number of colors to compute
-    let len = steps;
-
-    // Alpha blending amount
     let mut alpha = 0.0;
-
     let mut grad: Vec<Rgb> = Vec::new();
 
-    for _i in 0..len {
+    for _i in 0..steps {
         let red: f32;
         let green: f32;
         let blue: f32;
-        alpha = alpha + (1.0 / len as f32);
+        alpha = alpha + (1.0 / steps as f32);
 
         red = end.r as f32 * alpha + (1.0 - alpha) * start.r as f32;
         green = end.g as f32 * alpha + (1.0 - alpha) * start.g as f32;
@@ -85,12 +80,11 @@ fn main() {
     let mut idx_mode = false;
     for arg in env::args() {
         if idx_mode {
-            match arg.parse::<usize>() {
-                Ok(i) => grad_idx = i,
-                Err(_) => grad_idx = 0
-            }
-            if grad_idx >= grad_table.len() {
-                grad_idx = 0;
+            if let Ok(i) = arg.parse::<usize>() {
+                grad_idx = i;
+                if grad_idx >= grad_table.len() {
+                    grad_idx = 0;
+                }
             }
             idx_mode = false;
             continue;
@@ -109,29 +103,25 @@ fn main() {
             }
         }
     }
-
     if revlist_filename == "" || blame_filename == "" || bat_filename == "" {
         return;
     }
+
     let revlist_file = File::open(revlist_filename);
     let blame_file = File::open(blame_filename);
     let bat_file = File::open(bat_filename);
 
     // load revlist file
     let mut revlist_map = HashMap::new();
-    match revlist_file {
-        Err(_) => return,
-        Ok(file) => {
-            let reader = BufReader::new(file);
-            for (index, ln) in reader.lines().enumerate() {
-                let line;
-                match ln {
-                    Ok(data) => line = data,
-                    Err(_) => continue
-                }
-                revlist_map.insert(line, index as usize);
+    if let Ok(file) = revlist_file {
+        let reader = BufReader::new(file);
+        for (index, line) in reader.lines().enumerate() {
+            if let Ok(ln) = line {
+                revlist_map.insert(ln, index as usize);
             }
         }
+    } else {
+        return;
     }
 
     let fore_color = Rgb {
@@ -153,84 +143,84 @@ fn main() {
 
     // load bat file
     let mut bat_lines = vec![];
-    match bat_file {
-        Err(_) => return,
-        Ok(file) => {
-            let reader = BufReader::new(file);
-            for ln in reader.lines() {
-                let line;
-                match ln {
-                    Ok(data) => line = data,
-                    Err(_) => continue
-                }
+    if let Ok(file) = bat_file {
+        let reader = BufReader::new(file);
+        for ln in reader.lines() {
+            if let Ok(line) = ln {
                 bat_lines.push(line);
             }
         }
+    } else {
+        return;
     }
 
     // load blame file and process each line
-    match blame_file {
-        Err(_) => return,
-        Ok(file) => {
-            let reader = BufReader::new(file);
-            for (index, ln) in reader.lines().enumerate() {
-                let line;
-                match ln {
-                    Ok(data) => line = data,
-                    Err(_) => continue
-                }
-
-                /*
-                * According to git blame --help
-                *
-                * --abbrev=<n>
-                *      Instead of using the default 7+1 hexadecimal digits as the abbreviated object name, use <n>+1 digits.
-                *      Note that 1 column is used for a caret to mark the boundary commit.
-                *
-                *  We get the <n>+1 length hash-raw value and then make <n> length hash value.
-                */
-
-                // split hash-raw (<n>+1 length) and remaining
-                let hash_raw;
-                let remaining;
-                match line.find(' ') {
-                    Some(found) => {hash_raw = &line[..found]; remaining = &line[found..]},
-                    None => {hash_raw = &line; remaining = ""}
-                }
-
-                // make hash (<n> length) value
-                let mut hash: String = hash_raw.to_string();
-                let hash_len = hash.chars().count();
-                if hash_len > 1 {
-                    if hash.chars().nth(0) == Some('^') {
-                        hash = (&hash[1..]).to_string();
-                    } else {
-                        hash = (&hash[..hash_len-1]).to_string();
-                    }
-                }
-
-                // get matching index from hash-value
-                let matching_idx;
-                if hash == "000000000000" {
-                    // special case for local change
-                    // we assume "--abbrev=12"
-                    matching_idx = 0;
-                } else {
-                    match revlist_map.get(&hash) {
-                        Some(found) => matching_idx = *found,
-                        None => matching_idx = revlist_map.len() - 1
-                    }
-                }
-
-                // get current gradation color from matching index. default is back_end_color
-                let back_color;
-                match grad.get(matching_idx) {
-                    Some(color) => back_color = color,
-                    None => back_color = &back_end_color
-                }
-
-                println!("│\x1b[38;2;{};{};{}m\x1b[48;2;{};{};{}m{}{}\x1b[0m│{}", fore_color.r, fore_color.g, fore_color.b, back_color.r, back_color.g, back_color.b, hash, remaining, bat_lines[index]);
+    if let Ok(file) = blame_file {
+        let reader = BufReader::new(file);
+        for (index, ln) in reader.lines().enumerate() {
+            let line;
+            match ln {
+                Ok(data) => line = data,
+                Err(_) => continue
             }
+
+            // check bat line first
+            if index >= bat_lines.len() {
+                return;
+            }
+
+            /*
+            * According to git blame --help
+            *
+            * --abbrev=<n>
+            *      Instead of using the default 7+1 hexadecimal digits as the abbreviated object name, use <n>+1 digits.
+            *      Note that 1 column is used for a caret to mark the boundary commit.
+            *
+            *  We get the <n>+1 length hash-raw value and then make <n> length hash value.
+            */
+
+            // split hash-raw (<n>+1 length) and remaining
+            let hash_raw;
+            let remaining;
+            if let Some(i) = line.find(' ') {
+                hash_raw = &line[..i];
+                remaining = &line[i..];
+            } else {
+                hash_raw = &line;
+                remaining = "";
+            }
+
+            // make hash (<n> length) value
+            let mut hash: String = hash_raw.to_string();
+            let hash_len = hash.chars().count();
+            if hash_len > 1 {
+                if hash.chars().nth(0) == Some('^') {
+                    hash = (&hash[1..]).to_string();
+                } else {
+                    hash = (&hash[..hash_len-1]).to_string();
+                }
+            }
+
+            // get matching index from hash-value
+            let mut matching_idx = 0;
+            if hash != "000000000000" { // 00000... is local change
+                if let Some(found) = revlist_map.get(&hash) {
+                    matching_idx = *found;
+                } else {
+                    matching_idx = revlist_map.len() - 1;
+                }
+            }
+
+            // get current gradation color from matching index
+            let mut back_color = &back_end_color;
+            if let Some(color) = grad.get(matching_idx) {
+                back_color = color;
+            }
+
+            println!("│\x1b[38;2;{};{};{}m\x1b[48;2;{};{};{}m{}{}\x1b[0m│{}",
+                    fore_color.r, fore_color.g, fore_color.b,
+                    back_color.r, back_color.g, back_color.b,
+                    hash, remaining, bat_lines[index]);
         }
     }
 }
