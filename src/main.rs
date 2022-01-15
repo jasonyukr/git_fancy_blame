@@ -26,6 +26,7 @@ Br cyan    96m/106m  70c0b1
 ===========================
 */
 
+#[derive(Debug, Copy, Clone)]
 struct Rgb {
     r: u32,
     g: u32,
