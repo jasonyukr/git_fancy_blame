@@ -54,7 +54,8 @@ fn get_grad(start: &Rgb, end: &Rgb, steps: u32) -> Vec<Rgb> {
         };
         grad.push(rgb)
     }
-    return grad;
+
+    grad
 }
 
 fn main() {
@@ -204,8 +205,8 @@ fn main() {
             // get matching index from hash-value
             let mut matching_idx = 0;
             if hash != "000000000000" { // 00000... is local change
-                if let Some(found) = revlist_map.get(&hash) {
-                    matching_idx = *found;
+                if let Some(v) = revlist_map.get(&hash) {
+                    matching_idx = *v;
                 } else {
                     matching_idx = revlist_map.len() - 1;
                 }
@@ -213,8 +214,8 @@ fn main() {
 
             // get current gradation color from matching index
             let mut back_color = &back_end_color;
-            if let Some(color) = grad.get(matching_idx) {
-                back_color = color;
+            if let Some(c) = grad.get(matching_idx) {
+                back_color = c;
             }
 
             println!("│\x1b[38;2;{};{};{}m\x1b[48;2;{};{};{}m{}{}\x1b[0m│{}",
