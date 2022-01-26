@@ -35,26 +35,22 @@ struct Rgb {
 
 fn get_grad(start: &Rgb, end: &Rgb, steps: u32) -> Vec<Rgb> {
     let mut alpha = 0.0;
-    let mut grad: Vec<Rgb> = Vec::new();
+    let mut grad = Vec::new();
 
-    for _i in 0..steps {
-        let red: f32;
-        let green: f32;
-        let blue: f32;
+    for _ in 0..steps {
         alpha = alpha + (1.0 / steps as f32);
 
-        red = end.r as f32 * alpha + (1.0 - alpha) * start.r as f32;
-        green = end.g as f32 * alpha + (1.0 - alpha) * start.g as f32;
-        blue = end.b as f32 * alpha + (1.0 - alpha) * start.b as f32;
+        let red = end.r as f32 * alpha + (1.0 - alpha) * start.r as f32;
+        let green = end.g as f32 * alpha + (1.0 - alpha) * start.g as f32;
+        let blue = end.b as f32 * alpha + (1.0 - alpha) * start.b as f32;
 
         let rgb = Rgb {
             r: red as u32,
             g: green as u32,
             b: blue as u32
         };
-        grad.push(rgb)
+        grad.push(rgb);
     }
-
     grad
 }
 
