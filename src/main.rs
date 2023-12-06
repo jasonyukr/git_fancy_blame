@@ -1,4 +1,4 @@
-use std::io::{BufRead, BufReader};
+use std::io::{self, BufRead, BufReader, BufWriter, Write};
 use std::env;
 use std::fs::File;
 use std::collections::HashMap;
@@ -72,6 +72,9 @@ fn main() {
     let mut revlist_filename: String = String::from("");
     let mut blame_filename: String = String::from("");
     let mut bat_filename: String = String::from("");
+
+    let stdout = io::stdout();
+    let mut out = BufWriter::new(stdout);
 
     // parse argument
     let mut idx_mode = false;
@@ -214,10 +217,11 @@ fn main() {
                 back_color = c;
             }
 
-            println!("│\x1b[38;2;{};{};{}m\x1b[48;2;{};{};{}m{}{}\x1b[0m│{}",
+            writeln!(out, "│\x1b[38;2;{};{};{}m\x1b[48;2;{};{};{}m{}{}\x1b[0m│{}",
                     fore_color.r, fore_color.g, fore_color.b,
                     back_color.r, back_color.g, back_color.b,
-                    hash, remaining, bat_lines[index]);
+                    hash, remaining, bat_lines[index]).unwrap();
         }
     }
+    out.flush().unwrap();
 }
