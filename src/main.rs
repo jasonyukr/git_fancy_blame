@@ -2,6 +2,7 @@ use std::io::{self, BufRead, BufReader, BufWriter, Write};
 use std::env;
 use std::fs::File;
 use std::collections::HashMap;
+use std::process;
 
 /*
 ANSI 256color to true-color
@@ -217,10 +218,12 @@ fn main() {
                 back_color = c;
             }
 
-            writeln!(out, "│\x1b[38;2;{};{};{}m\x1b[48;2;{};{};{}m{}{}\x1b[0m│{}",
+            if let Err(_) = writeln!(out, "│\x1b[38;2;{};{};{}m\x1b[48;2;{};{};{}m{}{}\x1b[0m│{}",
                     fore_color.r, fore_color.g, fore_color.b,
                     back_color.r, back_color.g, back_color.b,
-                    hash, remaining, bat_lines[index]).unwrap();
+                    hash, remaining, bat_lines[index]) {
+                process::exit(1);
+            }
         }
     }
     out.flush().unwrap();
